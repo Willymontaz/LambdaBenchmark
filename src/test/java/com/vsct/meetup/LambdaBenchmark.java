@@ -32,83 +32,88 @@ import java.util.function.Function;
  */
 
 
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Fork(value = 1, jvmArgs = {"-Xms256m","-Xmx256m"})
+@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
+@Fork(value = 1, jvmArgs = {"-Xms20m","-Xmx20m"})
 @State(Scope.Benchmark)
 public class LambdaBenchmark {
 
-    String capturable = "concat";
+    Integer capturable = 2;
 
-    String applyFunction(String word) {
+    Integer applyFunction(Integer word) {
         return concatenate(word);
     }
 
-    String concatenate(String word) {
-        return word + " concat";
+    Integer concatenate(Integer word) {
+        return word + 2;
     }
 
-    String applyLambda(Function<String, String> lambda, String word) {
+    Integer applyLambda(Function<Integer, Integer> lambda, Integer word) {
         return lambda.apply(word);
     }
 
-    String applyInner(Inner inner, String word){
+    Integer applyInner(Inner inner, Integer word){
         return inner.apply(word);
     }
 
     static interface Inner {
-        String apply(String word);
+        Integer apply(Integer word);
     }
 
-    @Benchmark
+    /*@Setup
+    public void setup(){
+        Object.___resetObjectCreationStats___();
+    }
+
+    @TearDown
+    public void tearDown(){
+        Object.___printObjectCreationStats___();
+    }*/
+
+    //@Benchmark
     public void baseline() {
     }
 
     @Benchmark
-    public String method_call() {
-        return applyFunction("word");
+    public Integer method_call() {
+        return applyFunction(1);
     }
 
     @Benchmark
-    public String inner_class_without_capture() {
+    public Integer inner_class_without_capture() {
         return applyInner(new Inner() {
             @Override
-            public String apply(String s) {
-                return s + "concat";
+            public Integer apply(Integer s) {
+                return s + 2;
             }
-        }, "word");
+        }, 1);
     }
 
     @Benchmark
-    public String lambda_without_capture() {
-        return applyLambda(s -> {
-            return s + "concat";
-        }, "word");
+    public Integer lambda_without_capture() {
+        return applyLambda(s -> s + 2, 1);
     }
 
     @Benchmark
-    public String inner_class_capturing() {
+    public Integer inner_class_capturing() {
         return applyInner(new Inner() {
             @Override
-            public String apply(String s) {
-                return s + capturable;
+            public Integer apply(Integer s) {
+                return capturable + s;
             }
-        }, "word");
+        }, 1);
     }
 
     @Benchmark
-    public String lambda_capturing() {
-        return applyLambda(s -> {
-            return s + capturable;
-        }, "word");
+    public Integer lambda_capturing() {
+        return applyLambda(s -> capturable + s, 1);
     }
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(".*" + LambdaBenchmark.class.getSimpleName() + ".*")
-                .addProfiler(GCProfiler.class)
                 .build();
 
         new Runner(opt).run();
